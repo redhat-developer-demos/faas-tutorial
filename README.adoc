@@ -120,7 +120,7 @@ Download https://github.com/apache/incubator-openwhisk-cli/releases/[OpenWhisk C
 The https://github.com/apache/incubator-openwhisk-cli/releases/[OpenWhisk CLI] needs to be configured to know where the OpenWhisk is located
 and the authorization that could be used to invoke `wsk` commands.  Run the following command to have that setup:
 
-[code,bash]
+[source,bash]
 ----
 #!/bin/bash
 
@@ -147,7 +147,7 @@ your `wsk` commands. For convinience you can add an alias to your profile like `
 ==== Reinstall default Catalog 
 
 If you are on a low bandwidth sometimes the default catalog will not be populated, run the following commands to have them installed
-[code,sh]
+[source,sh]
 ----
 #!/bin/bash
 
@@ -207,7 +207,7 @@ https://github.com/apache/incubator-openwhisk/blob/master/docs/actions.md[here].
 Maven Archetype could be used to generate the template Java Action project, as of writing this tutorial the archetype is not maven central hence 
 it need to install it locally,
 
-[code,sh]
+[source,sh]
 ----
 git clone https://github.com/apache/incubator-openwhisk-devtools
 cd incubator-openwhisk-devtools/java-action-archetype
@@ -220,7 +220,7 @@ Lets now create the first Java Action a simple "Hello World",  have the deployed
 
 ===== Create Java Action
 
-[code,sh]
+[source,sh]
 ----
 mvn archetype:generate \
   -DarchetypeGroupId=org.apache.openwhisk.java \
@@ -238,16 +238,16 @@ mvn clean install
 ----
 
 ===== Deploy to OpenWhisk 
-[code,sh]
+[source,sh]
 ----
-wsk -i action create hello-openwhisk target/hello-openwhisk.jar --main com.example.FunctionApp
+wsk -i action update hello-openwhisk target/hello-openwhisk.jar --main com.example.FunctionApp
 ----
 
 ===== Invoke and Verify the result
 
 ====== Synchronously
 
-[code,sh]
+[source,sh]
 ----
 wsk -i action invoke hello-openwhisk --result
 ----
@@ -258,14 +258,14 @@ Successful execution of the command will show the following output:
 
 
 [[action-response]]
-[code,json]
+[source,json]
 ----
 {"greetings":  "Hello! Welcome to OpenWhisk" }
 ----
 
 ====== Asynchronously
 
-[code,sh]
+[source,sh]
 ----
 wsk -i action invoke hello-openwhisk
 ----
@@ -276,22 +276,348 @@ image::ow_action_with_activation_id.png[Action with Activation ID]
 
 We can then use the to **activation id** check the response using `wsk` CLI:
 
-[code,sh]
+[source,sh]
 ----
 wsk -i activation result <activation_id>
 ----
 
 e.g. 
 
-[code,sh]
+[source,sh]
 ----
 wsk -i activation result ffb2966350904356b29663509043566e
 ----
 
 Successful execution of the command will show the same output like <<action-response,Action Response>>.
 
+==== Chaining Actions
+
+Apache OpenWhisk allows chaining of actions which is called in sequence like how they are defined.  We will now create 
+a simple sequence of actions which will split, uppercase and sort a comma separated string.
+
+All the three projects can be co-located in same directory for clarity and easy building:
+
+[source,sh]
+-----
+cd ..
+mkdir -p sequence-demo 
+cd sequence-demo
+wsk -i package create redhat-developers-demo <1>
+-----
+
+<1> - Create a new package to hold our actions, this gives a better clarity on which actions we add to our sequence.  For more details 
+refer https://github.com/apache/incubator-openwhisk/blob/master/docs/packages.md[Packages]
+
+===== Create Split Action
+
+This Action will be first in the sequence which will receive a comma separated string as a parameter and will return a array of string
+as response.  
+
+[source,sh]
+----
+mvn archetype:generate \
+  -DarchetypeGroupId=org.apache.openwhisk.java \
+  -DarchetypeArtifactId=java-action-archetype \
+  -DarchetypeVersion=1.0-SNAPSHOT \
+  -DgroupId=com.example \
+  -DartifactId=splitter
+----
+
+Update the FunctionApp class with code:
+[source,java]
+----
+package com.example;
+
+import com.google.gson.JsonObject;
+
+/**
+ * Splitter FunctionApp
+ */
+public class FunctionApp {
+  public static JsonObject main(JsonObject args) {
+    JsonObject response = new JsonObject();
+    String text = null;
+    if (args.has("text")) {
+      text = args.getAsJsonPrimitive("text").getAsString();
+    }
+    String[] results = new String[] { text };
+    if (text != null && text.indexOf(",") != -1) {
+      results = text.split(",");
+    }
+    JsonArray splitStrings = new JsonArray();
+    for (String var : results) {
+      splitStrings.add(var);
+    }
+    response.add("result", splitStrings);
+    return response;
+  }
+}
+----
+
+Update the FunctionAppTest class with code:
+[source,java]
+----
+package com.example;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.util.ArrayList;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
+import org.junit.Test;
+
+/**
+ * Splitter FunctionAppTest
+ */
+public class FunctionAppTest {
+  @Test
+  public void testFunction() {
+    JsonObject args = new JsonObject();
+    args.addProperty("text", "apple,orange,banana");
+    JsonObject response = FunctionApp.main(args);
+    assertNotNull(response);
+    JsonArray results = response.getAsJsonArray("result");
+    assertNotNull(results);
+    assertEquals(3, results.size());
+    ArrayList<String> actuals = new ArrayList<>();
+    results.forEach(j -> actuals.add(j.getAsString()));
+    assertTrue(actuals.contains("apple"));
+    assertTrue(actuals.contains("orange"));
+    assertTrue(actuals.contains("banana"));
+  }
+}
+----
+
+===== Build Splitter Action
+[source,sh]
+----
+cd splitter
+mvn clean install
+wsk -i action update redhat-developers-demo/splitter target/splitter.jar --main com.example.FunctionApp
+----
+
+===== Create Uppercase Action
+
+This Action will take the array of Strings from previous step (Splitter Action) and convert the strings to upper case
+
+[source,sh]
+----
+cd ..
+mvn archetype:generate \
+  -DarchetypeGroupId=org.apache.openwhisk.java \
+  -DarchetypeArtifactId=java-action-archetype \
+  -DarchetypeVersion=1.0-SNAPSHOT \
+  -DgroupId=com.example \
+  -DartifactId=uppercase
+----
+
+Update the FunctionApp class with code:
+[source,java]
+----
+package com.example;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
+/**
+ * UpperCase Function
+ */
+public class FunctionApp {
+  public static JsonObject main(JsonObject args) {
+    JsonObject response = new JsonObject();
+    JsonArray upperArray = new JsonArray();
+    if (args.has("result")) {
+      args.getAsJsonArray("result").forEach(e -> upperArray.add(e.getAsString().toUpperCase()));
+    }
+    response.add("result", upperArray);
+    return response;
+  }
+}
+----
+
+Update the FunctionAppTest class with code:
+[source,java]
+----
+package com.example;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.util.ArrayList;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
+import org.junit.Test;
+
+/**
+ * Unit test for UpperCase Function.
+ */
+public class FunctionAppTest {
+  @Test
+  public void testFunction() {
+    JsonObject args = new JsonObject();
+    JsonArray splitStrings = new JsonArray();
+    splitStrings.add("apple");
+    splitStrings.add("orange");
+    splitStrings.add("banana");
+    args.add("result", splitStrings);
+    JsonObject response = FunctionApp.main(args);
+    assertNotNull(response);
+    JsonArray results = response.getAsJsonArray("result");
+    assertNotNull(results);
+    assertEquals(3, results.size());
+    ArrayList<String> actuals = new ArrayList<>();
+    results.forEach(j -> actuals.add(j.getAsString()));
+    assertTrue(actuals.contains("APPLE"));
+    assertTrue(actuals.contains("ORANGE"));
+    assertTrue(actuals.contains("BANANA"));
+  }
+}
+----
+
+===== Build Uppercase Action
+[source,sh]
+----
+cd uppercase
+mvn clean install
+wsk -i action update redhat-developers-demo/uppercase target/uppercase.jar --main com.example.FunctionApp
+----
+
+===== Create Sort Action
+
+This Action will take the array of Strings from previous step (Upppercase Action) and sort them
+
+[source,sh]
+----
+cd ..
+mvn archetype:generate \
+  -DarchetypeGroupId=org.apache.openwhisk.java \
+  -DarchetypeArtifactId=java-action-archetype \
+  -DarchetypeVersion=1.0-SNAPSHOT \
+  -DgroupId=com.example \
+  -DartifactId=sorter
+----
+
+Update the FunctionApp class with code:
+[source,java]
+----
+package com.example;
+
+import java.util.ArrayList;
+import java.util.Comparator;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
+/**
+ * Sorter FunctionApp
+ */
+public class FunctionApp {
+  public static JsonObject main(JsonObject args) {
+    JsonObject response = new JsonObject();
+    ArrayList<String> upperStrings = new ArrayList<>();
+    if (args.has("result")) {
+      args.getAsJsonArray("result").forEach(e -> upperStrings.add(e.getAsString()));
+    }
+
+    JsonArray sortedArray = new JsonArray();
+    upperStrings.stream().sorted(Comparator.naturalOrder()).forEach(s -> sortedArray.add(s));
+
+    response.add("result", sortedArray);
+    return response;
+  }
+}
+----
+
+Update the FunctionAppTest class with code:
+[source,java]
+----
+package com.example;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+import static org.junit.Assert.assertTrue;
+
+import java.util.ArrayList;
+
+import com.google.gson.JsonArray;
+import com.google.gson.JsonObject;
+
+import org.junit.Test;
+
+/**
+ * Unit test for Sorted Function.
+ */
+public class FunctionAppTest {
+  @Test
+  public void testFunction() {
+    JsonObject args = new JsonObject();
+    JsonArray splitStrings = new JsonArray();
+    splitStrings.add("APPLE");
+    splitStrings.add("ORANGE");
+    splitStrings.add("BANANA");
+    args.add("result", splitStrings);
+    JsonObject response = FunctionApp.main(args);
+    assertNotNull(response);
+    JsonArray results = response.getAsJsonArray("result");
+    assertNotNull(results);
+    assertEquals(3, results.size());
+    ArrayList<String> actuals = new ArrayList<>();
+    results.forEach(j -> actuals.add(j.getAsString()));
+    assertTrue(actuals.get(0).equals("APPLE"));
+    assertTrue(actuals.get(1).equals("BANANA"));
+    assertTrue(actuals.get(2).equals("ORANGE"));
+  }
+}
+
+----
+
+===== Build Sorter Action
+[source,sh]
+----
+cd sorter
+mvn clean install
+wsk -i action update redhat-developers-demo/sorter target/sorter.jar --main com.example.FunctionApp
+----
+
+===== Create an Action Sequence
+
+Having created all the three actions, lets now create OpenWhisk that calls all three function split,uppercase and sort in sequence.
+
+[source,sh]
+----
+cd ..
+wsk -i action update splitUpperAndSort --sequence redhat-developers-demo/splitter,redhat-developers-demo/uppercase,redhat-developers-demo/sorter
+----
+
+====== Invoke and Verify
+
+[source,sh]
+----
+wsk -i action invoke splitUpperAndSort --param text "zeebra,cat,antelope" --result
+----
+
+The above action invoke should result in response like:
+[source,sh]
+----
+{
+    "result": [
+        "ANTELOPE",
+        "CAT",
+        "ZEEBRA"
+    ]
+}
+----
+
 
 == References
 
 * https://github.com/apache/incubator-openwhisk/blob/master/docs/actions.md[OpenWhisk Actions]
 * https://github.com/apache/incubator-openwhisk/blob/master/docs/cli.md[Setup OpenWhisk CLI]
+* https://github.com/apache/incubator-openwhisk/blob/master/docs/packages.md[Packages]
