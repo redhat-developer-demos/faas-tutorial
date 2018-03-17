@@ -17,7 +17,7 @@ ifdef::basebackend-html[toc::[]]
 
 = Overview
 
-This tutorial walks your through on how to build a Java functions on a Function as a Service(FaaS) platform
+This tutorial walks you through on how to build a Java functions on a Function as a Service(FaaS) platform
  https://openwhisk.apache.org/[Apache OpenWhisk].
 
 == Prerequisites
@@ -34,11 +34,12 @@ You will need in this tutorial
 * https://github.com/apache/incubator-openwhisk-cli/releases/[OpenWhisk CLI]
 * curl, gunzip, tar are built-in to MacOS or part of your bash shell
 * git (everybody needs the git CLI)
+* Java 8
 
 === Setup minishift
 Assumes minishift, tested with minishift v1.13.1+75352e5
 
-Minishift creation script
+==== Minishift Profile Setup
 
 [source,sh]
 ----
@@ -194,6 +195,103 @@ Now when you run `wsk -i action list` you should see output like:
 
 image::OW_Install_Catalog.png[Install Catalog] 
 
+== Java Actions
+
+==== What is Action ?
+
+**Actions** are stateless code snippets that run on the OpenWhisk platform. Fore more details refer the official documentation 
+https://github.com/apache/incubator-openwhisk/blob/master/docs/actions.md[here].
+
+==== Install Maven Archetype
+
+Maven Archetype could be used to generate the template Java Action project, as of writing this tutorial the archetype is not maven central hence 
+it need to install it locally,
+
+[code,sh]
+----
+git clone https://github.com/apache/incubator-openwhisk-devtools
+cd incubator-openwhisk-devtools/java-action-archetype
+mvn -DskipTests clean install
+----
+
+==== Your first Java Action
+
+Lets now create the first Java Action a simple "Hello World",  have the deployed to OpenWhisk and invoke to see the result
+
+===== Create Java Action
+
+[code,sh]
+----
+mvn archetype:generate \
+  -DarchetypeGroupId=org.apache.openwhisk.java \
+  -DarchetypeArtifactId=java-action-archetype \
+  -DarchetypeVersion=1.0-SNAPSHOT \
+  -DgroupId=com.example \
+  -DartifactId=hello-openwhisk
+----
+
+===== Build 
+[code,sh]
+----
+cd hello-openwhisk
+mvn clean install 
+----
+
+===== Deploy to OpenWhisk 
+[code,sh]
+----
+wsk -i action create hello-openwhisk target/hello-openwhisk.jar --main com.example.FunctionApp
+----
+
+===== Invoke and Verify the result
+
+====== Synchronously
+
+[code,sh]
+----
+wsk -i action invoke hello-openwhisk --result
+----
+
+As all the OpenWhisk actions are asynchronous, we need to add `--result` to  get the result shown on the console.
+
+Successful execution of the command will show the following output:
+
+
+[[action-response]]
+[code,json]
+----
+{"greetings":  "Hello! Welcome to OpenWhisk" }
+----
+
+====== Asynchronously
+
+[code,sh]
+----
+wsk -i action invoke hello-openwhisk
+----
+
+A successful action invoke will return an **activation id** :
+
+image::ow_action_with_activation_id.png[Action with Activation ID]
+
+We can then use the to **activation id** check the response using `wsk` CLI:
+
+[code,sh]
+----
+wsk -i activation result <activation_id>
+----
+
+e.g. 
+
+[code,sh]
+----
+wsk -i activation result ffb2966350904356b29663509043566e
+----
+
+Successful execution of the command will show the same output like <<action-response,Action Response>>.
+
+
 == References
 
+* https://github.com/apache/incubator-openwhisk/blob/master/docs/actions.md[OpenWhisk Actions]
 * https://github.com/apache/incubator-openwhisk/blob/master/docs/cli.md[Setup OpenWhisk CLI]
