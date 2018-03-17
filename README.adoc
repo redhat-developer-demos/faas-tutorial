@@ -615,9 +615,184 @@ The above action invoke should result in response like:
 }
 ----
 
+==== Web Action
+
+[source,sh]
+----
+cd $PROJECT_HOME
+mvn archetype:generate \
+  -DarchetypeGroupId=org.apache.openwhisk.java \
+  -DarchetypeArtifactId=java-action-archetype \
+  -DarchetypeVersion=1.0-SNAPSHOT \
+  -DgroupId=com.example \
+  -DartifactId=hello-web
+----
+
+Update the FunctionApp class with code:
+[source,java]
+----
+package com.example;
+
+import com.google.gson.JsonObject;
+
+/**
+ * Hello Web FunctionApp
+ */
+public class FunctionApp {
+  public static JsonObject main(JsonObject args) {
+    JsonObject response = new JsonObject();
+    response.add("response", args);
+    return response;
+  }
+}
+----
+
+Update the FunctionAppTest class with code:
+[source,java]
+----
+package com.example;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import java.util.Base64;
+
+import com.google.gson.JsonObject;
+
+import org.junit.Test;
+
+/**
+ * Unit test for simple function.
+ */
+public class FunctionAppTest {
+  @Test
+  public void testFunction() {
+    JsonObject args = new JsonObject();
+    args.addProperty("name", "test");
+    JsonObject response = FunctionApp.main(args);
+    assertNotNull(response);
+    //the request data "{"name": "test"}" will be returned with Bas64 encoded string
+    //within JSON attribute __ow_body
+    String base64ReqBody = response.getAsJsonPrimitive("__ow_body").getAsString();
+    String actual = new String(Base64.getDecoder().decode(base64ReqBody.getBytes()));
+    assertEquals("{\"name\": \"test\"}", actual);
+  }
+}
+----
+
+===== Build 
+[code,sh]
+----
+cd hello-web
+mvn clean install 
+----
+
+===== Deploy to OpenWhisk 
+[source,sh]
+----
+wsk -i action update --web=true redhat-developers-demo/hello-web target/hello-web.jar --main com.example.FunctionApp
+----
+
+===== Invoke and Verify the result
+
+[source,sh]
+----
+WEB_URL=`wsk -i action get redhat-developers-demo/hello-web --url | awk 'FNR==2{print $1}'` #<1>
+AUTH=`oc get secret whisk.auth -o yaml | grep "system:" | awk '{print $2}'` #<2>
+----
+<1> Get the HTTP URL for invoking the action 
+<2> Some resources requires authentication, for those requests its required to add `Authorization` header with value as `$AUTH`
+
+[source,sh]
+----
+curl -k $WEB_URL.json
+----
+
+NOTE: 
+
+Invoke via curl like above , without any request data you will see the response like:
+
+[source,json]
+-----
+{
+  "response": {
+    "__ow_method": "get",
+    "__ow_headers": {
+      "x-forwarded-port": "443",
+      "accept": "*/*",
+      "forwarded": "for=192.168.64.1;host=openwhisk-faas.192.168.64.67.nip.io;proto=https",
+      "user-agent": "curl/7.54.0",
+      "x-forwarded-proto": "https",
+      "host": "controller.faas.svc.cluster.local:8080",
+      "x-forwarded-host": "openwhisk-faas.192.168.64.67.nip.io",
+      "x-forwarded-for": "192.168.64.1"
+    },
+    "__ow_path": ""
+  }
+}
+-----
+[source,sh]
+----
+curl -k -X POST -H 'Content-Type: application/json' -d '{"name": "test"}' $WEB_URL.json
+----
+
+Invoke via curl like above , with request data you will see the response like:
+
+[source,json]
+----
+{
+  "response": {
+    "__ow_method": "post",
+    "__ow_headers": {
+      "x-forwarded-port": "443",
+      "accept": "*/*",
+      "forwarded": "for=192.168.64.1;host=openwhisk-faas.192.168.64.67.nip.io;proto=https",
+      "user-agent": "curl/7.54.0",
+      "x-forwarded-proto": "https",
+      "host": "controller.faas.svc.cluster.local:8080",
+      "content-type": "application/json",
+      "x-forwarded-host": "openwhisk-faas.192.168.64.67.nip.io",
+      "x-forwarded-for": "192.168.64.1"
+    },
+    "__ow_path": "",
+    "name": "test"
+  }
+}
+----
+
+[source,sh]
+----
+curl -k -X POST -H 'Content-Type: application/something' -d '{"name": "test"}' $WEB_URL.json
+----
+
+Invoke via curl like above , with request data you will see the response like:
+
+[source,json]
+----
+{
+  "response": {
+    "__ow_method": "post",
+    "__ow_headers": {
+      "x-forwarded-port": "443",
+      "accept": "*/*",
+      "forwarded": "for=192.168.64.1;host=openwhisk-faas.192.168.64.67.nip.io;proto=https",
+      "user-agent": "curl/7.54.0",
+      "x-forwarded-proto": "https",
+      "host": "controller.faas.svc.cluster.local:8080",
+      "content-type": "application/something",
+      "x-forwarded-host": "openwhisk-faas.192.168.64.67.nip.io",
+      "x-forwarded-for": "192.168.64.1"
+    },
+    "__ow_path": "",
+    "__ow_body": "eyJuYW1lIjogInRlc3QifQ==" //<1>
+  }
+}
+----
+<1> for unknown content-type the request body will be sent as base64 encoded string
 
 == References
 
 * https://github.com/apache/incubator-openwhisk/blob/master/docs/actions.md[OpenWhisk Actions]
 * https://github.com/apache/incubator-openwhisk/blob/master/docs/cli.md[Setup OpenWhisk CLI]
 * https://github.com/apache/incubator-openwhisk/blob/master/docs/packages.md[Packages]
+* https://github.com/apache/incubator-openwhisk/blob/master/docs/webactions.md[Web Action]
