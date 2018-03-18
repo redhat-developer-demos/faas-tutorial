@@ -22,10 +22,26 @@ endif::[]
 
 (C) 2018 https://developers.redhat.com[Red Hat Developer Experience Team]
 
-//settings
+//Aliases
 :conum-guard-sh: #
 ifndef::icons[:conum-guard-sh: # #]
 
+:conum-guard-java: //
+ifndef::icons[:conum-guard-java: // //]
+
+// URIs:
+:uri-minishift: https://github.com/minishift/minishift/releases
+:uri-openwhisk-cli: https://github.com/apache/incubator-openwhisk-cli/releases/
+:uri-openwhisk-openshift: https://github.com/projectodd/openwhisk-openshift
+:uri-openwhisk-repo: https://github.com/apache/incubator-openwhisk
+:uri-repo: https://github.com/redhat-developer-demos/faas-java-tutorial
+:uri-repo-file-prefix: {uri-repo}/blob/master/
+:uri-repo-tree-prefix: {uri-repo}/tree/master/
+:uri-openwhisk-docs-prefix: {uri-openwhisk-repo}/blob/master/docs
+ifdef::env-github[]
+:uri-repo-file-prefix: link:
+:uri-repo-tree-prefix: link:
+endif::[]
 = Overview
 
 This tutorial walks you through on how to build a Java functions on a Function as a Service(FaaS) platform
@@ -36,13 +52,13 @@ This tutorial walks you through on how to build a Java functions on a Function a
 You will need in this tutorial
 
 === Tools
-* https://github.com/minishift/minishift/releases[minishift]
+* {uri-minishift}[minishift]
 * https://www.docker.com/docker-mac[docker]
 * https://kubernetes.io/docs/tasks/tools/install-kubectl/#install-kubectl-binary-via-curl[kubectl]
 * oc (eval $(minishift oc-env))
 * https://maven.apache.org[Apache Maven]
 * stern (brew install stern)
-* https://github.com/apache/incubator-openwhisk-cli/releases/[OpenWhisk CLI]
+* {uri-openwhisk-cli}[OpenWhisk CLI]
 * curl, gunzip, tar are built-in to MacOS or part of your bash shell
 * git (everybody needs the git CLI)
 * Java 8
@@ -84,7 +100,7 @@ minishift ssh -- sudo ip link set docker0 promisc on {conum-guard-sh} <2>
 
 === Setup environment
 
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 #!/bin/bash
 
@@ -94,12 +110,12 @@ oc login $(minishift ip):8443 -u admin -p admin
 
 === Setup OpenWhisk
 
-The project https://github.com/projectodd/openwhisk-openshift[OpenWhisk on OpenShift] provides the OpenShift templates required to deploy Apache OpenWhisk.
+The project {uri-openwhisk-openshift}[OpenWhisk on OpenShift] provides the OpenShift templates required to deploy Apache OpenWhisk.
 
-[source,sh]
+[source,sh,subs=attributes+]
 ----
-oc new-project faas #<1>
-oc project -q #<2>
+oc new-project faas {conum-guard-sh} <1>
+oc project -q {conum-guard-sh} <2>
 oc process -f https://git.io/openwhisk-template | oc create -f - {conum-guard-sh} <3>
 oc adm policy add-role-to-user admin developer -n faas {conum-guard-sh} <4>
 ----
@@ -125,13 +141,13 @@ image::OW_Deployed_Success_2.png[OpenWhisk Pods]
 [[configure-wsk]]
 ==== Configure WSK CLI
 
-Download https://github.com/apache/incubator-openwhisk-cli/releases/[OpenWhisk CLI] and add it your PATH.  Verify your path using the command
+Download {uri-openwhisk-cli}[OpenWhisk CLI] and add it your PATH.  Verify your path using the command
 `wsk --help`
 
-The https://github.com/apache/incubator-openwhisk-cli/releases/[OpenWhisk CLI] needs to be configured to know where the OpenWhisk is located
+The {uri-openwhisk-cli}[OpenWhisk CLI] needs to be configured to know where the OpenWhisk is located
 and the authorization that could be used to invoke `wsk` commands.  Run the following command to have that setup:
 
-[source,bash]
+[source,sh,subs=attributes+]
 ----
 #!/bin/bash
 
@@ -154,23 +170,23 @@ The `nginx` in OpenWhisk deployment uses a self-signed certificate, to avoid cer
 your `wsk` commands. For convenience you can add an alias to your profile like `alias wsk='wsk -i $@'`
 ==== 
 
-== Setup your Development environment
+=== Setup your Development environment
 
-Clone the complete project from `https://github.com/redhat-developer-demos/faas-java-tutorial`, we will refer to this location as 
-$PROJECT_HOME through out the document for convenience.
+Clone the complete project from `git clone {uri-repo}`, we will refer to this location as $PROJECT_HOME through out the document
+for convenience.
 
 === What is Action ?
 
 **Actions** are stateless code snippets that run on the OpenWhisk platform. It is analogous to **Function** in Java idioms.  OpenWhisk
 **Actions** are thread-safe meaning at a given point of time only one invocation happens.
 
-Fore more details refer the official documentation https://github.com/apache/incubator-openwhisk/blob/master/docs/actions.md[here].
+Fore more details refer the official documentation {uri-openwhisk-docs-prefix}/actions.md[here].
 
 ==== Your first Action
 
 Lets quickly create a simple function in JavaScript to see if all working:
 
-[code,sh]
+[source,sh,subs=attributes+]
 ----
 mkdir -p getstarted
 cd $PROJECT_HOME/getstarted
@@ -178,7 +194,7 @@ cd $PROJECT_HOME/getstarted
 
 Create a file called `$PROJECT_HOME/getstarted/greeter.js` and add the following content to it:
 
-[code,js]
+[source,js,subs=attributes+]
 ----
 function main() {
     return {payload: 'Welcome to OpenWhisk on OpenShift'};
@@ -187,21 +203,21 @@ function main() {
 
 Create an action called **greeter**:
 
-[code,sh]
+[source,sh,subs=attributes+]
 ----
 wsk -i action update greeter greeter.js
 ----
 
 Lets invoke the action using command: 
 
-[code,sh]
+[source,sh,subs=attributes+]
 ----
 wsk -i action invoke greeter --result
 ----
 
 The action invoke should respond with the following JSON:
 
-[code,json]
+[source,json,subs=attributes+]
 ----
 {
     "payload": "Welcome to OpenWhisk on OpenShift"
@@ -215,11 +231,12 @@ The action invoke should respond with the following JSON:
 Maven Archetype could be used to generate the template Java Action project, as of writing this tutorial the archetype is not maven central hence 
 it need to install it locally,
 
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 git clone https://github.com/apache/incubator-openwhisk-devtools
 cd incubator-openwhisk-devtools/java-action-archetype
-mvn -DskipTests clean package
+mvn -DskipTests clean install
+cd $PROJECT_HOME
 ----
 
 ==== Your first Java Action
@@ -236,7 +253,7 @@ work without any changes.
 
 ===== Create Java Action
 
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 cd $PROJECT_HOME
 mvn archetype:generate \
@@ -248,7 +265,7 @@ mvn archetype:generate \
 ----
 
 ===== Build 
-[code,sh]
+[source,sh,subs=attributes+]
 ----
 cd hello-openwhisk
 mvn clean package 
@@ -258,7 +275,7 @@ mvn clean package
 
 ====== Create 
 
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 wsk -i action create hello-openwhisk target/hello-openwhisk.jar --main com.example.FunctionApp
 ----
@@ -269,7 +286,7 @@ wsk -i action create hello-openwhisk target/hello-openwhisk.jar --main com.examp
 [[sync-invocation]]
 ====== Synchronously
 
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 wsk -i action invoke hello-openwhisk --result
 ----
@@ -280,7 +297,7 @@ Successful execution of the command will show the following output:
 
 
 [[action-response]]
-[source,json]
+[source,json,subs=attributes+]
 ----
 {"greetings":  "Hello! Welcome to OpenWhisk" }
 ----
@@ -288,7 +305,7 @@ Successful execution of the command will show the following output:
 [[async-invocation]]
 ====== Asynchronously
 
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 wsk -i action invoke hello-openwhisk
 ----
@@ -299,14 +316,14 @@ image::ow_action_with_activation_id.png[Action with Activation ID]
 
 We can then use the to **activation id** check the response using `wsk` CLI:
 
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 wsk -i activation result <activation_id>
 ----
 
 e.g. 
 
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 wsk -i activation result ffb2966350904356b29663509043566e
 ----
@@ -317,7 +334,7 @@ Successful execution of the command will show the same output like <<action-resp
 
 Update the FunctionApp class with code:
 
-[source,java]
+[source,java,subs=attributes+]
 ----
 package com.example;
 
@@ -337,7 +354,7 @@ public class FunctionApp {
 
 Update the FunctionAppTest class with code:
 
-[source,java]
+[source,java,subs=attributes+]
 ----
 package com.example;
 
@@ -364,7 +381,7 @@ public class FunctionAppTest {
 }
 ----
 
-[source,sh]
+[source,java,subs=attributes+]
 ----
 cd $PROJECT_HOME/hello-openwhisk
 mvn clean package
@@ -377,7 +394,7 @@ image::ow_action_update_result.png[]
 
 Repeating the <<action-invocation,Invocation and Verification>> steps should result in the updated response like:
 
-[source,json]
+[source,json,subs=attributes+]
 ----
 {
     "greetings": "Hello! Welcome to OpenWhisk on OpenShift"
@@ -386,7 +403,7 @@ Repeating the <<action-invocation,Invocation and Verification>> steps should res
 
 ====== Delete 
 
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 wsk -i action delete hello-openwhisk
 ----
@@ -397,9 +414,10 @@ image::ow_action_delete_result.png[]
 
 ==== Web Action
 
-**WebActions** allows the OpenWhisk action to be invoked via HTTP verbs like GET,POST,DELETE etc.,
+**WebActions** allows the OpenWhisk action to be invoked via HTTP verbs like GET, POST, PUT etc.,  The **WebActions** can be enabled for 
+any **Action** using the prameter `--web=true` during the creation of the action using {uri-openwhisk-cli}[WSK CLI].
 
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 cd $PROJECT_HOME
 mvn archetype:generate \
@@ -411,7 +429,7 @@ mvn archetype:generate \
 ----
 
 Update the FunctionApp class with code:
-[source,java]
+[source,java,subs=attributes+]
 ----
 package com.example;
 
@@ -430,7 +448,7 @@ public class FunctionApp {
 ----
 
 Update the FunctionAppTest class with code:
-[source,java]
+[source,java,subs=attributes+]
 ----
 package com.example;
 
@@ -463,21 +481,21 @@ public class FunctionAppTest {
 ----
 
 ===== Build 
-[code,sh]
+[source,sh,subs=attributes+]
 ----
 cd hello-web
 mvn clean package 
 ----
 
 ===== Deploy to OpenWhisk 
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 wsk -i action update --web=true redhat-developers-demo/hello-web target/hello-web.jar --main com.example.FunctionApp
 ----
 
 ===== Invoke and Verify the result
 
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 WEB_URL=`wsk -i action get redhat-developers-demo/hello-web --url | awk 'FNR==2{print $1}'` {conum-guard-sh}<1>
 AUTH=`oc get secret whisk.auth -o yaml | grep "system:" | awk '{print $2}'` {conum-guard-sh}<2>
@@ -485,16 +503,19 @@ AUTH=`oc get secret whisk.auth -o yaml | grep "system:" | awk '{print $2}'` {con
 <1> Get the HTTP URL for invoking the action 
 <2> Some resources requires authentication, for those requests its required to add `Authorization` header with value as `$AUTH`
 
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 curl -k $WEB_URL.json
 ----
 
-NOTE: 
+[NOTE]
+=====
 
-Invoke via curl like above , without any request data you will see the response like:
+The following section shows some example requests and their expected responses
 
-[source,json]
+**Without any request data**
+
+[source,json,subs=attributes+]
 -----
 {
   "response": {
@@ -513,14 +534,15 @@ Invoke via curl like above , without any request data you will see the response 
   }
 }
 -----
-[source,sh]
+
+**With any JSON request data**
+
+[source,sh,subs=attributes+]
 ----
 curl -k -X POST -H 'Content-Type: application/json' -d '{"name": "test"}' $WEB_URL.json
 ----
 
-Invoke via curl like above , with request data you will see the response like:
-
-[source,json]
+[source,json,subs=attributes+]
 ----
 {
   "response": {
@@ -542,14 +564,16 @@ Invoke via curl like above , with request data you will see the response like:
 }
 ----
 
-[source,sh]
+**With request data and an invalid content type**
+
+[source,sh,subs=attributes+]
 ----
 curl -k -X POST -H 'Content-Type: application/something' -d '{"name": "test"}' $WEB_URL.json
 ----
 
 Invoke via curl like above , with request data you will see the response like:
 
-[source,json]
+[source,json,subs=attributes+]
 ----
 {
   "response": {
@@ -571,6 +595,7 @@ Invoke via curl like above , with request data you will see the response like:
 }
 ----
 <1> for unknown content-type the request body will be sent as base64 encoded string
+=====
 
 ==== Chaining Actions
 
@@ -579,7 +604,7 @@ a simple sequence of actions which will split, uppercase and sort a comma separa
 
 All the three projects can be co-located in same directory for clarity and easy building:
 
-[source,sh]
+[source,sh,subs=attributes+]
 -----
 cd ..
 mkdir -p sequence-demo 
@@ -587,15 +612,15 @@ cd sequence-demo
 wsk -i package create redhat-developers-demo {conum-guard-sh} <1>
 -----
 
-<1> - Create a new package to hold our actions, this gives a better clarity on which actions we add to our sequence.  For more details 
-refer https://github.com/apache/incubator-openwhisk/blob/master/docs/packages.md[Packages]
+<1> Create a new package to hold our actions, this gives a better clarity on which actions we add to our sequence.  For more details 
+refer {uri-openwhisk-docs-prefix}/packages.md[Packages]
 
 ===== Create Split Action
 
 This Action will be first in the sequence which will receive a comma separated string as a parameter and will return a array of string
 as response.  
 
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 cd $PROJECT_HOME
 mvn archetype:generate \
@@ -607,7 +632,7 @@ mvn archetype:generate \
 ----
 
 Update the FunctionApp class with code:
-[source,java]
+[source,java,subs=attributes+]
 ----
 package com.example;
 
@@ -639,7 +664,7 @@ public class FunctionApp {
 ----
 
 Update the FunctionAppTest class with code:
-[source,java]
+[source,java,subs=attributes+]
 ----
 package com.example;
 
@@ -677,7 +702,7 @@ public class FunctionAppTest {
 ----
 
 ===== Build Splitter Action
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 cd splitter
 mvn clean package
@@ -688,7 +713,7 @@ wsk -i action update redhat-developers-demo/splitter target/splitter.jar --main 
 
 This Action will take the array of Strings from previous step (Splitter Action) and convert the strings to upper case
 
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 cd ..
 mvn archetype:generate \
@@ -700,7 +725,7 @@ mvn archetype:generate \
 ----
 
 Update the FunctionApp class with code:
-[source,java]
+[source,java,subs=attributes+]
 ----
 package com.example;
 
@@ -714,7 +739,7 @@ public class FunctionApp {
   public static JsonObject main(JsonObject args) {
     JsonObject response = new JsonObject();
     JsonArray upperArray = new JsonArray();
-    if (args.has("result")) {
+    if (args.has("result")) { {conum-guard-java} <1>
       args.getAsJsonArray("result").forEach(e -> upperArray.add(e.getAsString().toUpperCase()));
     }
     response.add("result", upperArray);
@@ -723,8 +748,10 @@ public class FunctionApp {
 }
 ----
 
+<1> The function expects the previous action in sequence to send the parameter with JSON attribute called `result`
+
 Update the FunctionAppTest class with code:
-[source,java]
+[source,java,subs=attributes+]
 ----
 package com.example;
 
@@ -766,7 +793,7 @@ public class FunctionAppTest {
 ----
 
 ===== Build Uppercase Action
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 cd uppercase
 mvn clean package
@@ -777,7 +804,7 @@ wsk -i action update redhat-developers-demo/uppercase target/uppercase.jar --mai
 
 This Action will take the array of Strings from previous step (Upppercase Action) and sort them
 
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 cd ..
 mvn archetype:generate \
@@ -789,7 +816,7 @@ mvn archetype:generate \
 ----
 
 Update the FunctionApp class with code:
-[source,java]
+[source,java,subs=attributes+]
 ----
 package com.example;
 
@@ -820,7 +847,7 @@ public class FunctionApp {
 ----
 
 Update the FunctionAppTest class with code:
-[source,java]
+[source,java,subs=attributes+]
 ----
 package com.example;
 
@@ -863,7 +890,7 @@ public class FunctionAppTest {
 ----
 
 ===== Build Sorter Action
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 cd sorter
 mvn clean package
@@ -874,7 +901,7 @@ wsk -i action update redhat-developers-demo/sorter target/sorter.jar --main com.
 
 Having created all the three actions, lets now create OpenWhisk that calls all three function split,uppercase and sort in sequence.
 
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 cd ..
 wsk -i action update splitUpperAndSort --sequence redhat-developers-demo/splitter,redhat-developers-demo/uppercase,redhat-developers-demo/sorter
@@ -882,13 +909,13 @@ wsk -i action update splitUpperAndSort --sequence redhat-developers-demo/splitte
 
 ====== Invoke and Verify
 
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 wsk -i action invoke splitUpperAndSort --param text "zeebra,cat,antelope" --result
 ----
 
 The above action invoke should result in response like:
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 {
     "result": [
@@ -904,7 +931,7 @@ The above action invoke should result in response like:
 ==== Reinstall default Catalog 
 
 If you are on a low bandwidth sometimes the default catalog will not be populated, run the following commands to have them installed
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 #!/bin/bash
 
@@ -942,7 +969,7 @@ spec:
         image: busybox
         command: ['sh', '-c', 'until wget -T 5 --spider http://controller:8080/ping; do echo waiting for controller; sleep 2; done;']
       restartPolicy: Never
-EOF # <2>
+EOF {conum-guard-sh} <2>
 ----
 
 <1> Delete the old job
@@ -952,14 +979,24 @@ Now when you run `wsk -i action list` you should see output like:
 
 image::OW_Install_Catalog.png[Install Catalog] 
 
+[[tips-and-tricks]]
 == Tips and Tricks
 
+[TIP]
+====
+* If you are going to use a lot of `wsk` then its worth aliasing wsk with `alias wsk='wsk -i $@'` to avoid SSL errors and skip adding `-i`
+for every command
 * For detailed JSON output form `wsk` commands prefix `-v`.  This is a great command option for troubleshooting
+* Its safe to use `wsk -i update [resource]` when creating OpenWhisk resources like **Actions**, **Packages** etc., as this command 
+will act like `create` for new resources and `update` for existing resources.
+* `wsk -i [resource command ] --summary`  provides detailed information about a specific resource e.g. wsk -i action get foo --summary
+====
 
+[[references]]
 == References
 
-* https://github.com/projectodd/openwhisk-openshift[Apache OpenWhisk on OpenShift]
-* https://github.com/apache/incubator-openwhisk/blob/master/docs/actions.md[OpenWhisk Actions]
-* https://github.com/apache/incubator-openwhisk/blob/master/docs/cli.md[Setup OpenWhisk CLI]
-* https://github.com/apache/incubator-openwhisk/blob/master/docs/packages.md[Packages]
-* https://github.com/apache/incubator-openwhisk/blob/master/docs/webactions.md[Web Action]
+* {uri-openwhisk-openshift}[Apache OpenWhisk on OpenShift]
+* {uri-openwhisk-docs-prefix}/actions.md[OpenWhisk Actions]
+* {uri-openwhisk-docs-prefix}/cli.md[Setup OpenWhisk CLI]
+* {uri-openwhisk-docs-prefix}/packages.md[Packages]
+* {uri-openwhisk-docs-prefix}/webactions.md[Web Action]
