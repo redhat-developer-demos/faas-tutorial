@@ -1,19 +1,30 @@
 = Java Function as a Service(FaaS) Tutorial
-Java Function as a Service(FaaS) Tutorial;
-:revnumber: 1.0
-:revdate: 17/03/2018
-:toc: macro
-:toclevels: 3
-:toc-title: Java Function as a Service(FaaS) Tutorial
-:doctype: book
+// Settings:
+:idprefix:
+:idseparator: -
+ifndef::env-github[]
 :icons: font
+endif::[]
+ifdef::env-github,env-browser[]
+:toc: preamble
+:toclevels: 5
+endif::[]
+ifdef::env-github[]
+:status:
+:outfilesuffix: .adoc
+:!toc-title:
+:caution-caption: :fire:
+:important-caption: :exclamation:
+:note-caption: :paperclip:
+:tip-caption: :bulb:
+:warning-caption: :warning:
+endif::[]
 
-ifndef::ebook-format[:leveloffset: 1]
+(C) 2018 https://developers.redhat.com[Red Hat Developer Experience Team]
 
-(C) 2018 Red Hat Developer Experience Team.
-
-ifdef::basebackend-html[toc::[]]
-
+//settings
+:conum-guard-sh: #
+ifndef::icons[:conum-guard-sh: # #]
 
 = Overview
 
@@ -41,7 +52,7 @@ Assumes minishift, tested with minishift v1.13.1+75352e5
 
 ==== Minishift Profile Setup
 
-[source,sh]
+[source,sh,subs=attributes+]
 ----
 
 #!/bin/bash
@@ -56,15 +67,15 @@ minishift config set memory 8GB
 minishift config set cpus 3
 minishift config set image-caching true
 minishift addon enable admin-user
-minishift addon enable anyuid #<1>
+minishift addon enable anyuid {conum-guard-sh} <1>
 
 minishift start
 
-minishift ssh -- sudo ip link set docker0 promisc on #<2>
+minishift ssh -- sudo ip link set docker0 promisc on {conum-guard-sh} <2>
 ----
 
-<1> Some images that are in Apache OpenWhisk Docker hub requires anyuid SCC in OpenShift
-<2> This is needed for pods to communicate with each other within the cluster (need to add more clear details here)
+<1> Some images that are in Apache OpenWhisk Docker hub requires __anyuid__ SCC in OpenShift
+<2> This is needed for pods to communicate with each other within the cluster (TODO: need to add more clear details here)
 
 [IMPORTANT]
 ====
@@ -89,8 +100,8 @@ The project https://github.com/projectodd/openwhisk-openshift[OpenWhisk on OpenS
 ----
 oc new-project faas #<1>
 oc project -q #<2>
-oc process -f https://git.io/openwhisk-template | oc create -f - #<3>
-oc adm policy add-role-to-user admin developer -n faas #<4>
+oc process -f https://git.io/openwhisk-template | oc create -f - {conum-guard-sh} <3>
+oc adm policy add-role-to-user admin developer -n faas {conum-guard-sh} <4>
 ----
 
 <1> Its always better to group certain class of applications, create a new OpenShift project called `faas` to deploy all OpenWhisk applications
@@ -100,8 +111,8 @@ oc adm policy add-role-to-user admin developer -n faas #<4>
 
 [NOTE]
 ====
-You need to wait for sometime to have all the required OpenWhisk pods come up and the FaaS is ready for some load.  
-You can watch the status via  `oc logs -f controller-0 -n faas | grep "invoker status changed`
+You need to wait for sometime to have all the required OpenWhisk pods come up and the FaaS is ready for some load. You can watch the status 
+logs -f controller-0 -n faas | grep "invoker status changed"`
 ====
 
 ==== Verify Deployment
@@ -140,67 +151,64 @@ OpenWhisk setup.  If you see empty result then you <<install-catalog>>
 [TIP]
 ====
 The `nginx` in OpenWhisk deployment uses a self-signed certificate, to avoid certificate errors when using `wsk`, you need to add `wsk -i` to each of
-your `wsk` commands. For convinience you can add an alias to your profile like `alias wsk='wsk -i $@'`
+your `wsk` commands. For convenience you can add an alias to your profile like `alias wsk='wsk -i $@'`
 ==== 
 
-[[install-catalog]]
-==== Reinstall default Catalog 
+== Setup your Development environment
 
-If you are on a low bandwidth sometimes the default catalog will not be populated, run the following commands to have them installed
-[source,sh]
+Clone the complete project from `https://github.com/redhat-developer-demos/faas-java-tutorial`, we will refer to this location as 
+$PROJECT_HOME through out the document for convenience.
+
+=== What is Action ?
+
+**Actions** are stateless code snippets that run on the OpenWhisk platform. It is analogous to **Function** in Java idioms.  OpenWhisk
+**Actions** are thread-safe meaning at a given point of time only one invocation happens.
+
+Fore more details refer the official documentation https://github.com/apache/incubator-openwhisk/blob/master/docs/actions.md[here].
+
+==== Your first Action
+
+Lets quickly create a simple function in JavaScript to see if all working:
+
+[code,sh]
 ----
-#!/bin/bash
-
-oc delete job install-catalog <1>
-
-cat <<EOF | oc apply -f -
-apiVersion: batch/v1
-kind: Job
-metadata:
-  name: install-catalog
-spec:
-  activeDeadlineSeconds: 600
-  template:
-    metadata:
-      name: install-catalog
-    spec:
-      containers:
-      - name: catalog
-        image: projectodd/whisk_catalog:openshift-latest
-        env:
-          - name: "WHISK_CLI_VERSION"
-            valueFrom:
-              configMapKeyRef:
-                name: whisk.config
-                key: whisk_cli_version_tag
-          - name: "WHISK_AUTH"
-            valueFrom:
-              secretKeyRef:
-                name: whisk.auth
-                key: system
-          - name: "WHISK_API_HOST_NAME"
-            value: "http://controller:8080"
-      initContainers:
-      - name: wait-for-controller
-        image: busybox
-        command: ['sh', '-c', 'until wget -T 5 --spider http://controller:8080/ping; do echo waiting for controller; sleep 2; done;']
-      restartPolicy: Never
-EOF # <2>
+mkdir -p getstarted
+cd $PROJECT_HOME/getstarted
 ----
 
-<1> Delete the old job
-<2> Run the install-catalog job again 
+Create a file called `$PROJECT_HOME/getstarted/greeter.js` and add the following content to it:
 
-Now when you run `wsk -i action list` you should see output like:
+[code,js]
+----
+function main() {
+    return {payload: 'Welcome to OpenWhisk on OpenShift'};
+}
+----
 
-image::OW_Install_Catalog.png[Install Catalog] 
+Create an action called **greeter**:
 
-== Java Actions
+[code,sh]
+----
+wsk -i action update greeter greeter.js
+----
 
-==== What is Action ?
+Lets invoke the action using command: 
 
-**Actions** are stateless code snippets that run on the OpenWhisk platform. Fore more details refer the official documentation 
-https://github.com/apache/incubator-openwhisk/blob/master/docs/actions.md[here].
+[code,sh]
+----
+wsk -i action invoke greeter --result
+----
+
+The action invoke should respond with the following JSON:
+
+[code,json]
+----
+{
+    "payload": "Welcome to OpenWhisk on OpenShift"
+}
+----
+
+=== Java Actions
 
 ==== Install Maven Archetype
 
@@ -211,17 +219,26 @@ it need to install it locally,
 ----
 git clone https://github.com/apache/incubator-openwhisk-devtools
 cd incubator-openwhisk-devtools/java-action-archetype
-mvn -DskipTests clean install
+mvn -DskipTests clean package
 ----
 
 ==== Your first Java Action
 
-Lets now create the first Java Action a simple "Hello World",  have the deployed to OpenWhisk and invoke to see the result
+Lets now create the first Java Action a simple "hello world" kind of function,  have it deployed to OpenWhisk and finally 
+invoke to see the result.  This section will also details the complete Create-Update-Delete cycle of Java **Actions** on OpenWhisk.
+
+[NOTE]
+====
+For easier jar names all the examples will be using maven `<finalName>`.  If you generating new project following the instructions
+just be sure to update the default `<finalName>` in `pom.xml` to `${artifactId}` to make the command instructions in subsequent section 
+work without any changes.
+====
 
 ===== Create Java Action
 
 [source,sh]
 ----
+cd $PROJECT_HOME
 mvn archetype:generate \
   -DarchetypeGroupId=org.apache.openwhisk.java \
   -DarchetypeArtifactId=java-action-archetype \
@@ -234,17 +251,22 @@ mvn archetype:generate \
 [code,sh]
 ----
 cd hello-openwhisk
-mvn clean install 
+mvn clean package 
 ----
 
 ===== Deploy to OpenWhisk 
+
+====== Create 
+
 [source,sh]
 ----
-wsk -i action update hello-openwhisk target/hello-openwhisk.jar --main com.example.FunctionApp
+wsk -i action create hello-openwhisk target/hello-openwhisk.jar --main com.example.FunctionApp
 ----
 
+[[action-invocation]]
 ===== Invoke and Verify the result
 
+[[sync-invocation]]
 ====== Synchronously
 
 [source,sh]
@@ -263,6 +285,7 @@ Successful execution of the command will show the following output:
 {"greetings":  "Hello! Welcome to OpenWhisk" }
 ----
 
+[[async-invocation]]
 ====== Asynchronously
 
 [source,sh]
@@ -290,6 +313,265 @@ wsk -i activation result ffb2966350904356b29663509043566e
 
 Successful execution of the command will show the same output like <<action-response,Action Response>>.
 
+====== Update 
+
+Update the FunctionApp class with code:
+
+[source,java]
+----
+package com.example;
+
+import com.google.gson.JsonObject;
+
+/**
+ * Hello FunctionApp
+ */
+public class FunctionApp {
+  public static JsonObject main(JsonObject args) {
+    JsonObject response = new JsonObject();
+    response.addProperty("greetings", "Hello! Welcome to OpenWhisk on OpenShift");
+    return response;
+  }
+}
+----
+
+Update the FunctionAppTest class with code:
+
+[source,java]
+----
+package com.example;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import com.google.gson.JsonObject;
+
+import org.junit.Test;
+
+/**
+ * Unit test for simple function.
+ */
+public class FunctionAppTest {
+  @Test
+  public void testFunction() {
+    JsonObject args = new JsonObject();
+    JsonObject response = FunctionApp.main(args);
+    assertNotNull(response);
+    String greetings = response.getAsJsonPrimitive("greetings").getAsString();
+    assertNotNull(greetings);
+    assertEquals("Hello! Welcome to OpenWhisk", greetings);
+  }
+}
+----
+
+[source,sh]
+----
+cd $PROJECT_HOME/hello-openwhisk
+mvn clean package
+wsk -i action update hello-openwhisk target/hello-openwhisk.jar --main com.example.FunctionApp
+----
+
+Successful update should show a output like:
+
+image::ow_action_update_result.png[]
+
+Repeating the <<action-invocation,Invocation and Verification>> steps should result in the updated response like:
+
+[source,json]
+----
+{
+    "greetings": "Hello! Welcome to OpenWhisk on OpenShift"
+}
+----
+
+====== Delete 
+
+[source,sh]
+----
+wsk -i action delete hello-openwhisk
+----
+
+Successful delete should show a output like:
+
+image::ow_action_delete_result.png[]
+
+==== Web Action
+
+**WebActions** allows the OpenWhisk action to be invoked via HTTP verbs like GET,POST,DELETE etc.,
+
+[source,sh]
+----
+cd $PROJECT_HOME
+mvn archetype:generate \
+  -DarchetypeGroupId=org.apache.openwhisk.java \
+  -DarchetypeArtifactId=java-action-archetype \
+  -DarchetypeVersion=1.0-SNAPSHOT \
+  -DgroupId=com.example \
+  -DartifactId=hello-web
+----
+
+Update the FunctionApp class with code:
+[source,java]
+----
+package com.example;
+
+import com.google.gson.JsonObject;
+
+/**
+ * Hello Web FunctionApp
+ */
+public class FunctionApp {
+  public static JsonObject main(JsonObject args) {
+    JsonObject response = new JsonObject();
+    response.add("response", args);
+    return response;
+  }
+}
+----
+
+Update the FunctionAppTest class with code:
+[source,java]
+----
+package com.example;
+
+import static org.junit.Assert.assertEquals;
+import static org.junit.Assert.assertNotNull;
+
+import java.util.Base64;
+
+import com.google.gson.JsonObject;
+
+import org.junit.Test;
+
+/**
+ * Unit test for simple function.
+ */
+public class FunctionAppTest {
+  @Test
+  public void testFunction() {
+    JsonObject args = new JsonObject();
+    args.addProperty("name", "test");
+    JsonObject response = FunctionApp.main(args);
+    assertNotNull(response);
+    //the request data "{"name": "test"}" will be returned with Bas64 encoded string
+    //within JSON attribute __ow_body
+    String base64ReqBody = response.getAsJsonPrimitive("__ow_body").getAsString();
+    String actual = new String(Base64.getDecoder().decode(base64ReqBody.getBytes()));
+    assertEquals("{\"name\": \"test\"}", actual);
+  }
+}
+----
+
+===== Build 
+[code,sh]
+----
+cd hello-web
+mvn clean package 
+----
+
+===== Deploy to OpenWhisk 
+[source,sh]
+----
+wsk -i action update --web=true redhat-developers-demo/hello-web target/hello-web.jar --main com.example.FunctionApp
+----
+
+===== Invoke and Verify the result
+
+[source,sh]
+----
+WEB_URL=`wsk -i action get redhat-developers-demo/hello-web --url | awk 'FNR==2{print $1}'` {conum-guard-sh}<1>
+AUTH=`oc get secret whisk.auth -o yaml | grep "system:" | awk '{print $2}'` {conum-guard-sh}<2>
+----
+<1> Get the HTTP URL for invoking the action 
+<2> Some resources requires authentication, for those requests its required to add `Authorization` header with value as `$AUTH`
+
+[source,sh]
+----
+curl -k $WEB_URL.json
+----
+
+NOTE: 
+
+Invoke via curl like above , without any request data you will see the response like:
+
+[source,json]
+-----
+{
+  "response": {
+    "__ow_method": "get",
+    "__ow_headers": {
+      "x-forwarded-port": "443",
+      "accept": "*/*",
+      "forwarded": "for=192.168.64.1;host=openwhisk-faas.192.168.64.67.nip.io;proto=https",
+      "user-agent": "curl/7.54.0",
+      "x-forwarded-proto": "https",
+      "host": "controller.faas.svc.cluster.local:8080",
+      "x-forwarded-host": "openwhisk-faas.192.168.64.67.nip.io",
+      "x-forwarded-for": "192.168.64.1"
+    },
+    "__ow_path": ""
+  }
+}
+-----
+[source,sh]
+----
+curl -k -X POST -H 'Content-Type: application/json' -d '{"name": "test"}' $WEB_URL.json
+----
+
+Invoke via curl like above , with request data you will see the response like:
+
+[source,json]
+----
+{
+  "response": {
+    "__ow_method": "post",
+    "__ow_headers": {
+      "x-forwarded-port": "443",
+      "accept": "*/*",
+      "forwarded": "for=192.168.64.1;host=openwhisk-faas.192.168.64.67.nip.io;proto=https",
+      "user-agent": "curl/7.54.0",
+      "x-forwarded-proto": "https",
+      "host": "controller.faas.svc.cluster.local:8080",
+      "content-type": "application/json",
+      "x-forwarded-host": "openwhisk-faas.192.168.64.67.nip.io",
+      "x-forwarded-for": "192.168.64.1"
+    },
+    "__ow_path": "",
+    "name": "test"
+  }
+}
+----
+
+[source,sh]
+----
+curl -k -X POST -H 'Content-Type: application/something' -d '{"name": "test"}' $WEB_URL.json
+----
+
+Invoke via curl like above , with request data you will see the response like:
+
+[source,json]
+----
+{
+  "response": {
+    "__ow_method": "post",
+    "__ow_headers": {
+      "x-forwarded-port": "443",
+      "accept": "*/*",
+      "forwarded": "for=192.168.64.1;host=openwhisk-faas.192.168.64.67.nip.io;proto=https",
+      "user-agent": "curl/7.54.0",
+      "x-forwarded-proto": "https",
+      "host": "controller.faas.svc.cluster.local:8080",
+      "content-type": "application/something",
+      "x-forwarded-host": "openwhisk-faas.192.168.64.67.nip.io",
+      "x-forwarded-for": "192.168.64.1"
+    },
+    "__ow_path": "",
+    "__ow_body": "eyJuYW1lIjogInRlc3QifQ==" //<1>
+  }
+}
+----
+<1> for unknown content-type the request body will be sent as base64 encoded string
+
 ==== Chaining Actions
 
 Apache OpenWhisk allows chaining of actions which is called in sequence like how they are defined.  We will now create 
@@ -302,7 +584,7 @@ All the three projects can be co-located in same directory for clarity and easy 
 cd ..
 mkdir -p sequence-demo 
 cd sequence-demo
-wsk -i package create redhat-developers-demo <1>
+wsk -i package create redhat-developers-demo {conum-guard-sh} <1>
 -----
 
 <1> - Create a new package to hold our actions, this gives a better clarity on which actions we add to our sequence.  For more details 
@@ -315,6 +597,7 @@ as response.
 
 [source,sh]
 ----
+cd $PROJECT_HOME
 mvn archetype:generate \
   -DarchetypeGroupId=org.apache.openwhisk.java \
   -DarchetypeArtifactId=java-action-archetype \
@@ -328,6 +611,7 @@ Update the FunctionApp class with code:
 ----
 package com.example;
 
+import com.google.gson.JsonArray;
 import com.google.gson.JsonObject;
 
 /**
@@ -396,7 +680,7 @@ public class FunctionAppTest {
 [source,sh]
 ----
 cd splitter
-mvn clean install
+mvn clean package
 wsk -i action update redhat-developers-demo/splitter target/splitter.jar --main com.example.FunctionApp
 ----
 
@@ -485,7 +769,7 @@ public class FunctionAppTest {
 [source,sh]
 ----
 cd uppercase
-mvn clean install
+mvn clean package
 wsk -i action update redhat-developers-demo/uppercase target/uppercase.jar --main com.example.FunctionApp
 ----
 
@@ -582,7 +866,7 @@ public class FunctionAppTest {
 [source,sh]
 ----
 cd sorter
-mvn clean install
+mvn clean package
 wsk -i action update redhat-developers-demo/sorter target/sorter.jar --main com.example.FunctionApp
 ----
 
@@ -615,183 +899,66 @@ The above action invoke should result in response like:
 }
 ----
 
-==== Web Action
+== Troubleshooting
+[[install-catalog]]
+==== Reinstall default Catalog 
 
+If you are on a low bandwidth sometimes the default catalog will not be populated, run the following commands to have them installed
 [source,sh]
 ----
-cd $PROJECT_HOME
-mvn archetype:generate \
-  -DarchetypeGroupId=org.apache.openwhisk.java \
-  -DarchetypeArtifactId=java-action-archetype \
-  -DarchetypeVersion=1.0-SNAPSHOT \
-  -DgroupId=com.example \
-  -DartifactId=hello-web
+#!/bin/bash
+
+oc delete job install-catalog <1>
+
+cat <<EOF | oc apply -f -
+apiVersion: batch/v1
+kind: Job
+metadata:
+  name: install-catalog
+spec:
+  activeDeadlineSeconds: 600
+  template:
+    metadata:
+      name: install-catalog
+    spec:
+      containers:
+      - name: catalog
+        image: projectodd/whisk_catalog:openshift-latest
+        env:
+          - name: "WHISK_CLI_VERSION"
+            valueFrom:
+              configMapKeyRef:
+                name: whisk.config
+                key: whisk_cli_version_tag
+          - name: "WHISK_AUTH"
+            valueFrom:
+              secretKeyRef:
+                name: whisk.auth
+                key: system
+          - name: "WHISK_API_HOST_NAME"
+            value: "http://controller:8080"
+      initContainers:
+      - name: wait-for-controller
+        image: busybox
+        command: ['sh', '-c', 'until wget -T 5 --spider http://controller:8080/ping; do echo waiting for controller; sleep 2; done;']
+      restartPolicy: Never
+EOF # <2>
 ----
 
-Update the FunctionApp class with code:
-[source,java]
-----
-package com.example;
+<1> Delete the old job
+<2> Run the install-catalog job again 
 
-import com.google.gson.JsonObject;
+Now when you run `wsk -i action list` you should see output like:
 
-/**
- * Hello Web FunctionApp
- */
-public class FunctionApp {
-  public static JsonObject main(JsonObject args) {
-    JsonObject response = new JsonObject();
-    response.add("response", args);
-    return response;
-  }
-}
-----
+image::OW_Install_Catalog.png[Install Catalog] 
 
-Update the FunctionAppTest class with code:
-[source,java]
-----
-package com.example;
+== Tips and Tricks
 
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
-import java.util.Base64;
-
-import com.google.gson.JsonObject;
-
-import org.junit.Test;
-
-/**
- * Unit test for simple function.
- */
-public class FunctionAppTest {
-  @Test
-  public void testFunction() {
-    JsonObject args = new JsonObject();
-    args.addProperty("name", "test");
-    JsonObject response = FunctionApp.main(args);
-    assertNotNull(response);
-    //the request data "{"name": "test"}" will be returned with Bas64 encoded string
-    //within JSON attribute __ow_body
-    String base64ReqBody = response.getAsJsonPrimitive("__ow_body").getAsString();
-    String actual = new String(Base64.getDecoder().decode(base64ReqBody.getBytes()));
-    assertEquals("{\"name\": \"test\"}", actual);
-  }
-}
-----
-
-===== Build 
-[code,sh]
-----
-cd hello-web
-mvn clean install 
-----
-
-===== Deploy to OpenWhisk 
-[source,sh]
-----
-wsk -i action update --web=true redhat-developers-demo/hello-web target/hello-web.jar --main com.example.FunctionApp
-----
-
-===== Invoke and Verify the result
-
-[source,sh]
-----
-WEB_URL=`wsk -i action get redhat-developers-demo/hello-web --url | awk 'FNR==2{print $1}'` #<1>
-AUTH=`oc get secret whisk.auth -o yaml | grep "system:" | awk '{print $2}'` #<2>
-----
-<1> Get the HTTP URL for invoking the action 
-<2> Some resources requires authentication, for those requests its required to add `Authorization` header with value as `$AUTH`
-
-[source,sh]
-----
-curl -k $WEB_URL.json
-----
-
-NOTE: 
-
-Invoke via curl like above , without any request data you will see the response like:
-
-[source,json]
------
-{
-  "response": {
-    "__ow_method": "get",
-    "__ow_headers": {
-      "x-forwarded-port": "443",
-      "accept": "*/*",
-      "forwarded": "for=192.168.64.1;host=openwhisk-faas.192.168.64.67.nip.io;proto=https",
-      "user-agent": "curl/7.54.0",
-      "x-forwarded-proto": "https",
-      "host": "controller.faas.svc.cluster.local:8080",
-      "x-forwarded-host": "openwhisk-faas.192.168.64.67.nip.io",
-      "x-forwarded-for": "192.168.64.1"
-    },
-    "__ow_path": ""
-  }
-}
------
-[source,sh]
-----
-curl -k -X POST -H 'Content-Type: application/json' -d '{"name": "test"}' $WEB_URL.json
-----
-
-Invoke via curl like above , with request data you will see the response like:
-
-[source,json]
-----
-{
-  "response": {
-    "__ow_method": "post",
-    "__ow_headers": {
-      "x-forwarded-port": "443",
-      "accept": "*/*",
-      "forwarded": "for=192.168.64.1;host=openwhisk-faas.192.168.64.67.nip.io;proto=https",
-      "user-agent": "curl/7.54.0",
-      "x-forwarded-proto": "https",
-      "host": "controller.faas.svc.cluster.local:8080",
-      "content-type": "application/json",
-      "x-forwarded-host": "openwhisk-faas.192.168.64.67.nip.io",
-      "x-forwarded-for": "192.168.64.1"
-    },
-    "__ow_path": "",
-    "name": "test"
-  }
-}
-----
-
-[source,sh]
-----
-curl -k -X POST -H 'Content-Type: application/something' -d '{"name": "test"}' $WEB_URL.json
-----
-
-Invoke via curl like above , with request data you will see the response like:
-
-[source,json]
-----
-{
-  "response": {
-    "__ow_method": "post",
-    "__ow_headers": {
-      "x-forwarded-port": "443",
-      "accept": "*/*",
-      "forwarded": "for=192.168.64.1;host=openwhisk-faas.192.168.64.67.nip.io;proto=https",
-      "user-agent": "curl/7.54.0",
-      "x-forwarded-proto": "https",
-      "host": "controller.faas.svc.cluster.local:8080",
-      "content-type": "application/something",
-      "x-forwarded-host": "openwhisk-faas.192.168.64.67.nip.io",
-      "x-forwarded-for": "192.168.64.1"
-    },
-    "__ow_path": "",
-    "__ow_body": "eyJuYW1lIjogInRlc3QifQ==" //<1>
-  }
-}
-----
-<1> for unknown content-type the request body will be sent as base64 encoded string
+* For detailed JSON output form `wsk` commands prefix `-v`.  This is a great command option for troubleshooting
 
 == References
 
+* https://github.com/projectodd/openwhisk-openshift[Apache OpenWhisk on OpenShift]
 * https://github.com/apache/incubator-openwhisk/blob/master/docs/actions.md[OpenWhisk Actions]
 * https://github.com/apache/incubator-openwhisk/blob/master/docs/cli.md[Setup OpenWhisk CLI]
 * https://github.com/apache/incubator-openwhisk/blob/master/docs/packages.md[Packages]
