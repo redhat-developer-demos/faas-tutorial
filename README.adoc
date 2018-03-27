@@ -42,7 +42,7 @@ ifdef::env-github[]
 :uri-repo-file-prefix: link:
 :uri-repo-tree-prefix: link:
 endif::[]
-== Overview
+= Overview
 
 This tutorial walks you through on how to build a Java functions on a Function as a Service(FaaS) platform
  https://openwhisk.apache.org/[Apache OpenWhisk].
@@ -85,11 +85,11 @@ minishift config set memory 8GB
 minishift config set cpus 3
 minishift config set image-caching true
 minishift addon enable admin-user
-minishift addon enable anyuid  # <1>
+minishift addon enable anyuid {conum-guard-sh} # <1>
 
 minishift start
 
-minishift ssh -- sudo ip link set docker0 promisc on # <2>
+minishift ssh -- sudo ip link set docker0 promisc on {conum-guard-sh} # <2>
 ----
 
 <1> Some images that are in Apache OpenWhisk Docker hub requires __anyuid__ SCC in OpenShift
@@ -379,7 +379,7 @@ public class FunctionAppTest {
     assertNotNull(response);
     String greetings = response.getAsJsonPrimitive("greetings").getAsString();
     assertNotNull(greetings);
-    assertEquals("Hello! Welcome to OpenWhisk", greetings);
+    assertEquals("Hello! Welcome to OpenWhisk on OpenShift", greetings);
   }
 }
 ----
@@ -411,7 +411,7 @@ Repeating the <<action-invocation,Invocation and Verification>> steps should res
 wsk -i action delete hello-openwhisk
 ----
 
-Successful delete should show output like:
+A successful delete should show output like:
 
 image::ow_action_delete_result.png[]
 
@@ -738,7 +738,7 @@ public class FunctionApp {
   public static JsonObject main(JsonObject args) {
     JsonObject response = new JsonObject();
     JsonArray upperArray = new JsonArray();
-    if (args.has("result")) { // <1>
+    if (args.has("result")) { {conum-guard-java} // <1>
       args.getAsJsonArray("result").forEach(e -> upperArray.add(e.getAsString().toUpperCase()));
     }
     response.add("result", upperArray);
@@ -984,11 +984,12 @@ image::OW_Install_Catalog.png[Install Catalog]
 [TIP]
 ====
 * If you are going to use a lot of `wsk` then its worth aliasing wsk with `alias wsk='wsk -i $@'` to avoid SSL errors and skip adding `-i`
-for every command
-* For detailed JSON output form `wsk` commands prefix `-v`.  This is a great command option for troubleshooting
+for every command.
+* For detailed JSON output form `wsk` commands prefix `-v`.  This is a great command option for troubleshooting.
 * Its safe to use `wsk -i update [resource]` when creating OpenWhisk resources like **Actions**, **Packages** etc., as this command 
 will act like `create` for new resources and `update` for existing resources.
 * `wsk -i [resource command ] --summary`  provides detailed information about a specific resource e.g. wsk -i action get foo --summary
+* `wsk -i activation poll`, a very useful command when we want to debug some error or see the exception stack traces during a funciton execution.  The simple example of this could be that we star this command on one terminal and fire the action on another to see  poll window showing exceptions/errors/stacktraces if any during execution.
 ====
 
 [[references]]
