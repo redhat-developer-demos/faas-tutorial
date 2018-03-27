@@ -128,7 +128,7 @@ oc adm policy add-role-to-user admin developer -n faas {conum-guard-sh} <4>
 [NOTE]
 ====
 You need to wait for sometime to have all the required OpenWhisk pods come up and the FaaS is ready for some load. You can watch the status 
-logs -f controller-0 -n faas | grep "invoker status changed"`
+watch -n 5 'oc logs -f controller-0 -n faas | grep "invoker status changed"'`
 ====
 
 ==== Verify Deployment
@@ -376,7 +376,7 @@ public class FunctionAppTest {
     assertNotNull(response);
     String greetings = response.getAsJsonPrimitive("greetings").getAsString();
     assertNotNull(greetings);
-    assertEquals("Hello! Welcome to OpenWhisk", greetings);
+    assertEquals("Hello! Welcome to OpenWhisk on OpenShift", greetings);
   }
 }
 ----
@@ -982,11 +982,12 @@ image::OW_Install_Catalog.png[Install Catalog]
 [TIP]
 ====
 * If you are going to use a lot of `wsk` then its worth aliasing wsk with `alias wsk='wsk -i $@'` to avoid SSL errors and skip adding `-i`
-for every command
-* For detailed JSON output form `wsk` commands prefix `-v`.  This is a great command option for troubleshooting
+for every command.
+* For detailed JSON output form `wsk` commands prefix `-v`.  This is a great command option for troubleshooting.
 * Its safe to use `wsk -i update [resource]` when creating OpenWhisk resources like **Actions**, **Packages** etc., as this command 
 will act like `create` for new resources and `update` for existing resources.
 * `wsk -i [resource command ] --summary`  provides detailed information about a specific resource e.g. wsk -i action get foo --summary
+* `wsk -i activation poll`, a very useful command when we want to debug some error or see the exception stack traces during a funciton execution.  The simple example of this could be that we star this command on one terminal and fire the action on another to see  poll window showing exceptions/errors/stacktraces if any during execution.
 ====
 
 [[references]]
