@@ -42,7 +42,7 @@ ifdef::env-github[]
 :uri-repo-file-prefix: link:
 :uri-repo-tree-prefix: link:
 endif::[]
-== Overview
+= Overview
 
 This tutorial walks you through on how to build a Java functions on a Function as a Service(FaaS) platform
  https://openwhisk.apache.org/[Apache OpenWhisk].
@@ -85,11 +85,11 @@ minishift config set memory 8GB
 minishift config set cpus 3
 minishift config set image-caching true
 minishift addon enable admin-user
-minishift addon enable anyuid  # <1>
+minishift addon enable anyuid {conum-guard-sh} # <1>
 
 minishift start
 
-minishift ssh -- sudo ip link set docker0 promisc on # <2>
+minishift ssh -- sudo ip link set docker0 promisc on {conum-guard-sh} # <2>
 ----
 
 <1> Some images that are in Apache OpenWhisk Docker hub requires __anyuid__ SCC in OpenShift
@@ -411,7 +411,7 @@ Repeating the <<action-invocation,Invocation and Verification>> steps should res
 wsk -i action delete hello-openwhisk
 ----
 
-Successful delete should show output like:
+A successful delete should show output like:
 
 image::ow_action_delete_result.png[]
 
@@ -738,7 +738,7 @@ public class FunctionApp {
   public static JsonObject main(JsonObject args) {
     JsonObject response = new JsonObject();
     JsonArray upperArray = new JsonArray();
-    if (args.has("result")) { // <1>
+    if (args.has("result")) { {conum-guard-java} // <1>
       args.getAsJsonArray("result").forEach(e -> upperArray.add(e.getAsString().toUpperCase()));
     }
     response.add("result", upperArray);
