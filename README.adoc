@@ -42,7 +42,7 @@ ifdef::env-github[]
 :uri-repo-file-prefix: link:
 :uri-repo-tree-prefix: link:
 endif::[]
-= Overview
+== Overview
 
 This tutorial walks you through on how to build a Java functions on a Function as a Service(FaaS) platform
  https://openwhisk.apache.org/[Apache OpenWhisk].
@@ -231,8 +231,8 @@ The action invoke should respond with the following JSON:
 
 ==== Install Maven Archetype
 
-A Maven archetype could be used to generate the template Java Action project, as of writing this tutorial the archetype is not in maven
-central so we need to install it locally.
+Maven Archetype can be used to generate the template Java Action project, as of writing this tutorial the archetype is not maven central
+hence it need to install it locally,
 
 [source,sh,subs=attributes+]
 ----
