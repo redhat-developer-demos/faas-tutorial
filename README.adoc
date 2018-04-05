@@ -129,9 +129,8 @@ oc adm policy add-role-to-user admin developer -n faas {conum-guard-sh} # <4>
 
 [NOTE]
 ====
-You need to wait for sometime to have all the required OpenWhisk pods come up and the FaaS is ready for some load. You can watch the
-status using `oc logs -f controller-0 -n faas | grep "invoker status changed"`
-====
+You need to wait for sometime to have all the required OpenWhisk pods come up and the FaaS is ready for some load. You can watch the status 
+watch -n 5 'oc logs -f controller-0 -n faas | grep "invoker status changed"'`
 
 ==== Verify Deployment
 
