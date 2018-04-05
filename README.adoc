@@ -77,7 +77,7 @@ Local development and testing can be done using https://github.com/minishift/min
 
 # add the location of minishift executable to PATH
 
-export MINISHIFT_HOME=~/minishift_1.13.1
+export MINISHIFT_HOME=~/minishift_1.15.1
 export PATH=$MINISHIFT_HOME:$PATH
 
 minishift profile set faas-tutorial
@@ -264,7 +264,9 @@ mvn archetype:generate \
   -DarchetypeArtifactId=java-action-archetype \
   -DarchetypeVersion=1.0-SNAPSHOT \
   -DgroupId=com.example \
-  -DartifactId=hello-openwhisk
+  -DartifactId=hello-openwhisk \
+  -Dversion=1.0-SNAPSHOT \
+  -DinteractiveMode=false
 ----
 
 ===== Build 
@@ -335,53 +337,18 @@ Successful execution of the command will show the same output like <<action-resp
 
 ====== Update 
 
-Update the FunctionApp class with this code:
+Update the FunctionApp class response with the String:
 
 [source,java,subs=attributes+]
 ----
-package com.example;
-
-import com.google.gson.JsonObject;
-
-/**
- * Hello FunctionApp
- */
-public class FunctionApp {
-  public static JsonObject main(JsonObject args) {
-    JsonObject response = new JsonObject();
     response.addProperty("greetings", "Hello! Welcome to OpenWhisk on OpenShift");
-    return response;
-  }
-}
 ----
 
-Update the FunctionAppTest class with this code:
+Update the FunctionAppTest Test class to match the same String:
 
 [source,java,subs=attributes+]
 ----
-package com.example;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
-import com.google.gson.JsonObject;
-
-import org.junit.Test;
-
-/**
- * Unit test for simple function.
- */
-public class FunctionAppTest {
-  @Test
-  public void testFunction() {
-    JsonObject args = new JsonObject();
-    JsonObject response = FunctionApp.main(args);
-    assertNotNull(response);
-    String greetings = response.getAsJsonPrimitive("greetings").getAsString();
-    assertNotNull(greetings);
     assertEquals("Hello! Welcome to OpenWhisk on OpenShift", greetings);
-  }
-}
 ----
 
 [source,java,subs=attributes+]
@@ -395,8 +362,7 @@ Successful update should show a output like:
 
 image::ow_action_update_result.png[]
 
-Repeating the <<action-invocation,Invocation and Verification>> steps should result in the updated response like:
-
+Repeating the <<action-invocation,Invocation and Verification>> steps should result in the updated response ("... on OpenShift") like:
 [source,json,subs=attributes+]
 ----
 {
@@ -428,44 +394,20 @@ mvn archetype:generate \
   -DarchetypeArtifactId=java-action-archetype \
   -DarchetypeVersion=1.0-SNAPSHOT \
   -DgroupId=com.example \
-  -DartifactId=hello-web
+  -DartifactId=hello-web \
+  -Dversion=1.0-SNAPSHOT \
+  -DinteractiveMode=false
 ----
 
-Update the FunctionApp class with this code:
+Update the FunctionApp class response to show application's arguments:
 [source,java,subs=attributes+]
 ----
-package com.example;
-
-import com.google.gson.JsonObject;
-
-/**
- * Hello Web FunctionApp
- */
-public class FunctionApp {
-  public static JsonObject main(JsonObject args) {
-    JsonObject response = new JsonObject();
     response.add("response", args);
-    return response;
-  }
-}
 ----
 
-Update the FunctionAppTest class with this code:
+Update the FunctionAppTest testFunction method with code:
 [source,java,subs=attributes+]
 ----
-package com.example;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-
-import com.google.gson.JsonObject;
-
-import org.junit.Test;
-
-/**
- * Unit test for simple function.
- */
-public class FunctionAppTest {
   @Test
   public void testFunction() {
     JsonObject args = new JsonObject();
@@ -475,7 +417,6 @@ public class FunctionAppTest {
     String actual = response.get("response").getAsJsonObject().get("name").getAsString();
     assertEquals("test", actual);
   }
-}
 ----
 
 ===== Build 
@@ -496,7 +437,7 @@ wsk -i action update --web=true hello-web target/hello-web.jar --main com.exampl
 [source,sh,subs=attributes+]
 ----
 WEB_URL=`wsk -i action get hello-web --url | awk 'FNR==2{print $1}'` # <1>
-AUTH=`oc get secret whisk.auth -o yaml | grep "system:" | awk '{print $2}'` # <2>
+AUTH=`oc get secret whisk.auth -n faas -o yaml | grep "system:" | awk '{print $2}'` # <2>
 ----
 <1> Get the HTTP URL for invoking the action 
 <2> Some resources requires authentication, for those requests its required to add `Authorization` header with value as `$AUTH`
@@ -621,27 +562,20 @@ This Action will receive a comma separated string as a parameter and return a ar
 
 [source,sh,subs=attributes+]
 ----
-cd $PROJECT_HOME
+cd $PROJECT_HOME/sequence-demo
 mvn archetype:generate \
   -DarchetypeGroupId=org.apache.openwhisk.java \
   -DarchetypeArtifactId=java-action-archetype \
   -DarchetypeVersion=1.0-SNAPSHOT \
   -DgroupId=com.example \
-  -DartifactId=splitter
+  -DartifactId=splitter \
+  -Dversion=1.0-SNAPSHOT \
+  -DinteractiveMode=false
 ----
 
 Update the FunctionApp class with this code:
 [source,java,subs=attributes+]
 ----
-package com.example;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-
-/**
- * Splitter FunctionApp
- */
-public class FunctionApp {
   public static JsonObject main(JsonObject args) {
     JsonObject response = new JsonObject();
     String text = null;
@@ -658,30 +592,12 @@ public class FunctionApp {
     }
     response.add("result", splitStrings);
     return response;
-  }
 }
 ----
 
-Update the FunctionAppTest class with this code:
+Update the FunctionAppTest testFunction method with code:
 [source,java,subs=attributes+]
 ----
-package com.example;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import java.util.ArrayList;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-
-import org.junit.Test;
-
-/**
- * Splitter FunctionAppTest
- */
-public class FunctionAppTest {
   @Test
   public void testFunction() {
     JsonObject args = new JsonObject();
@@ -691,13 +607,12 @@ public class FunctionAppTest {
     JsonArray results = response.getAsJsonArray("result");
     assertNotNull(results);
     assertEquals(3, results.size());
-    ArrayList<String> actuals = new ArrayList<>();
+    List<String> actuals = new ArrayList<>();
     results.forEach(j -> actuals.add(j.getAsString()));
     assertTrue(actuals.contains("apple"));
     assertTrue(actuals.contains("orange"));
     assertTrue(actuals.contains("banana"));
   }
-}
 ----
 
 ===== Build Splitter Action
@@ -720,21 +635,14 @@ mvn archetype:generate \
   -DarchetypeArtifactId=java-action-archetype \
   -DarchetypeVersion=1.0-SNAPSHOT \
   -DgroupId=com.example \
-  -DartifactId=uppercase
+  -DartifactId=uppercase \
+  -Dversion=1.0-SNAPSHOT \
+  -DinteractiveMode=false
 ----
 
 Update the FunctionApp class with this code:
 [source,java,subs=attributes+]
 ----
-package com.example;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-
-/**
- * UpperCase Function
- */
-public class FunctionApp {
   public static JsonObject main(JsonObject args) {
     JsonObject response = new JsonObject();
     JsonArray upperArray = new JsonArray();
@@ -744,31 +652,13 @@ public class FunctionApp {
     response.add("result", upperArray);
     return response;
   }
-}
 ----
 
 <1> The function expects the previous action in sequence to send the parameter with JSON attribute called `result`
 
-Update the FunctionAppTest class with this code:
+Update the FunctionAppTest testFunction method with code:
 [source,java,subs=attributes+]
 ----
-package com.example;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import java.util.ArrayList;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-
-import org.junit.Test;
-
-/**
- * Unit test for UpperCase Function.
- */
-public class FunctionAppTest {
   @Test
   public void testFunction() {
     JsonObject args = new JsonObject();
@@ -782,13 +672,12 @@ public class FunctionAppTest {
     JsonArray results = response.getAsJsonArray("result");
     assertNotNull(results);
     assertEquals(3, results.size());
-    ArrayList<String> actuals = new ArrayList<>();
+    List<String> actuals = new ArrayList<>();
     results.forEach(j -> actuals.add(j.getAsString()));
     assertTrue(actuals.contains("APPLE"));
     assertTrue(actuals.contains("ORANGE"));
     assertTrue(actuals.contains("BANANA"));
   }
-}
 ----
 
 ===== Build Uppercase Action
@@ -811,27 +700,17 @@ mvn archetype:generate \
   -DarchetypeArtifactId=java-action-archetype \
   -DarchetypeVersion=1.0-SNAPSHOT \
   -DgroupId=com.example \
-  -DartifactId=sorter
+  -DartifactId=sorter \
+  -Dversion=1.0-SNAPSHOT \
+  -DinteractiveMode=false
 ----
 
 Update the FunctionApp class with this code:
 [source,java,subs=attributes+]
 ----
-package com.example;
-
-import java.util.ArrayList;
-import java.util.Comparator;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-
-/**
- * Sorter FunctionApp
- */
-public class FunctionApp {
   public static JsonObject main(JsonObject args) {
     JsonObject response = new JsonObject();
-    ArrayList<String> upperStrings = new ArrayList<>();
+    List<String> upperStrings = new ArrayList<>();
     if (args.has("result")) {
       args.getAsJsonArray("result").forEach(e -> upperStrings.add(e.getAsString()));
     }
@@ -842,29 +721,11 @@ public class FunctionApp {
     response.add("result", sortedArray);
     return response;
   }
-}
 ----
 
-Update the FunctionAppTest class with this code:
+Update the FunctionAppTest testFunction method with code:
 [source,java,subs=attributes+]
 ----
-package com.example;
-
-import static org.junit.Assert.assertEquals;
-import static org.junit.Assert.assertNotNull;
-import static org.junit.Assert.assertTrue;
-
-import java.util.ArrayList;
-
-import com.google.gson.JsonArray;
-import com.google.gson.JsonObject;
-
-import org.junit.Test;
-
-/**
- * Unit test for Sorted Function.
- */
-public class FunctionAppTest {
   @Test
   public void testFunction() {
     JsonObject args = new JsonObject();
@@ -878,13 +739,12 @@ public class FunctionAppTest {
     JsonArray results = response.getAsJsonArray("result");
     assertNotNull(results);
     assertEquals(3, results.size());
-    ArrayList<String> actuals = new ArrayList<>();
+    List<String> actuals = new ArrayList<>();
     results.forEach(j -> actuals.add(j.getAsString()));
     assertTrue(actuals.get(0).equals("APPLE"));
     assertTrue(actuals.get(1).equals("BANANA"));
     assertTrue(actuals.get(2).equals("ORANGE"));
   }
-}
 
 ----
 
@@ -903,14 +763,14 @@ Having created all the three actions, lets now create OpenWhisk that calls all t
 [source,sh,subs=attributes+]
 ----
 cd ..
-wsk -i action update splitUpperAndSort --sequence redhat-developers-demo/splitter,redhat-developers-demo/uppercase,redhat-developers-demo/sorter
+wsk -i action update redhat-developers-demo/splitUpperAndSort --sequence redhat-developers-demo/splitter,redhat-developers-demo/uppercase,redhat-developers-demo/sorter
 ----
 
 ====== Invoke and Verify
 
 [source,sh,subs=attributes+]
 ----
-wsk -i action invoke splitUpperAndSort --param text "zebra,cat,antelope" --result
+wsk -i action invoke redhat-developers-demo/splitUpperAndSort --param text "zebra,cat,antelope" --result
 ----
 
 The above action invoke should result in response like:
