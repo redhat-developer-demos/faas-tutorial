@@ -175,14 +175,14 @@ to each of your `wsk` commands. For convenience, you can add an alias to your pr
 Clone the complete project from `git clone {uri-repo}`, we will refer to this location as $PROJECT_HOME through out the document
 for convenience.
 
-=== What is an Action ?
+== What is an Action ?
 
 **Actions** are stateless code snippets that run on the OpenWhisk platform. They are analogous to methods in Java idioms.  OpenWhisk
 **Actions** are thread-safe meaning at a given point of time only one invocation happens.
 
 Fore more details refer the official documentation {uri-openwhisk-docs-prefix}/actions.md[here].
 
-==== Your first Action
+=== Your first Action
 
 Let's quickly create a simple function in JavaScript to see it all working:
 
@@ -224,9 +224,9 @@ The action invoke should respond with the following JSON:
 }
 ----
 
-=== Java Actions
+== Java Actions
 
-==== Install Maven Archetype
+=== Install Maven Archetype
 
 Maven Archetype can be used to generate the template Java Action project, as of writing this tutorial the archetype is not maven central
 hence it need to install it locally,
@@ -239,7 +239,7 @@ mvn -DskipTests clean install
 cd $PROJECT_HOME
 ----
 
-==== Your first Java Action
+=== Your first Java Action
 
 Let's now create the first Java Action a simple "hello world" kind of function,  have it deployed to OpenWhisk and finally
 invoke to see the result.  This section will also details the complete Create-Update-Delete cycle of Java **Actions** on OpenWhisk.
@@ -251,7 +251,7 @@ just be sure to update the default `<finalName>` in `pom.xml` to `${artifactId}`
 work without any changes.
 ====
 
-===== Create Java Action
+==== Create Java Action
 
 [source,sh,subs=attributes+]
 ----
@@ -266,16 +266,16 @@ mvn archetype:generate \
   -DinteractiveMode=false
 ----
 
-===== Build 
+==== Build
 [source,sh,subs=attributes+]
 ----
 cd hello-openwhisk
 mvn clean package 
 ----
 
-===== Deploy to OpenWhisk 
+==== Deploy to OpenWhisk
 
-====== Create 
+===== Create
 
 [source,sh,subs=attributes+]
 ----
@@ -283,10 +283,10 @@ wsk -i action create hello-openwhisk target/hello-openwhisk.jar --main com.examp
 ----
 
 [[action-invocation]]
-===== Invoke and Verify the result
+==== Invoke and Verify the result
 
 [[sync-invocation]]
-====== Synchronously
+===== Synchronously
 
 [source,sh,subs=attributes+]
 ----
@@ -305,7 +305,7 @@ Successful execution of the command will show the following output:
 ----
 
 [[async-invocation]]
-====== Asynchronously
+===== Asynchronously
 
 [source,sh,subs=attributes+]
 ----
@@ -332,7 +332,7 @@ wsk -i activation result ffb2966350904356b29663509043566e
 
 Successful execution of the command will show the same output like <<action-response,Action Response>>.
 
-====== Update 
+===== Update
 
 Update the FunctionApp class response with the String:
 
@@ -367,7 +367,7 @@ Repeating the <<action-invocation,Invocation and Verification>> steps should res
 }
 ----
 
-====== Delete
+===== Delete
 
 [source,sh,subs=attributes+]
 ----
@@ -378,7 +378,7 @@ A successful delete should show output like:
 
 image::readme_images/ow_action_delete_result.png[]
 
-==== Web Action
+=== Web Action
 
 **WebActions** allow the OpenWhisk action to be invoked via HTTP verbs like GET, POST, PUT etc.  The **WebActions** can be enabled for
 any **Action** using the parameter `--web=true` during the creation of the action using {uri-openwhisk-cli}[WSK CLI].
@@ -416,20 +416,20 @@ Update the FunctionAppTest testFunction method with code:
   }
 ----
 
-===== Build 
+==== Build
 [source,sh,subs=attributes+]
 ----
 cd hello-web
 mvn clean package 
 ----
 
-===== Deploy to OpenWhisk 
+==== Deploy to OpenWhisk
 [source,sh,subs=attributes+]
 ----
 wsk -i action update --web=true hello-web target/hello-web.jar --main com.example.FunctionApp
 ----
 
-===== Invoke and Verify the result
+==== Invoke and Verify the result
 
 [source,sh,subs=attributes+]
 ----
@@ -535,7 +535,7 @@ Invoke via curl like above , with request data you will see the response like:
 <1> for unknown content-type the request body will be sent as base64 encoded string
 =====
 
-==== Chaining Actions
+=== Chaining Actions
 
 Apache OpenWhisk allows chaining of actions which are called in the same sequence as they are defined.  We will now create
 a simple sequence of actions which will split, convert to uppercase, and sort a comma separated string.
@@ -553,7 +553,7 @@ wsk -i package create redhat-developers-demo {conum-guard-sh} <1>
 <1> Create a new package to hold our actions, this gives a better clarity on which actions we add to our sequence.  For more details 
 refer to the {uri-openwhisk-docs-prefix}/packages.md[Packages] documentation.
 
-===== Create Split Action
+==== Create Split Action
 
 This Action will receive a comma separated string as a parameter and return a array of Strings as a response.
 
@@ -620,7 +620,7 @@ mvn clean package
 wsk -i action update redhat-developers-demo/splitter target/splitter.jar --main com.example.FunctionApp
 ----
 
-===== Create Uppercase Action
+==== Create Uppercase Action
 
 This Action will take the array of Strings from previous step (Splitter Action) and convert the strings to upper case
 
@@ -685,7 +685,7 @@ mvn clean package
 wsk -i action update redhat-developers-demo/uppercase target/uppercase.jar --main com.example.FunctionApp
 ----
 
-===== Create Sort Action
+==== Create Sort Action
 
 This Action will take the array of Strings from previous step (Upppercase Action) and sort them
 
@@ -753,7 +753,7 @@ mvn clean package
 wsk -i action update redhat-developers-demo/sorter target/sorter.jar --main com.example.FunctionApp
 ----
 
-===== Create an Action Sequence
+==== Create an Action Sequence
 
 Having created all the three actions, lets now create OpenWhisk that calls all three function split,uppercase and sort in sequence.
 
