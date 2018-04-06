@@ -138,8 +138,8 @@ status using watch -n 5 'oc logs -f controller-0 -n faas | grep "invoker status 
 Launch OpenShift console via `minishift console`.  Navigate to the `faas` project by clicking the name in the upper right corner.  A
 successful deployment will look like:
 
-image::OW_Deployed_Success_1.png[OpenWhisk Pods]
-image::OW_Deployed_Success_2.png[OpenWhisk Pods] 
+image::readme_images/ow_deployed_success_1.png[OpenWhisk Pods]
+image::readme_images/ow_deployed_success_2.png[OpenWhisk Pods]
 
 [[configure-wsk]]
 ==== Configure WSK CLI
@@ -160,7 +160,7 @@ wsk property set --auth $AUTH_SECRET --apihost $(oc get route/openwhisk --templa
 
 Successful setup of WSK CLI will show output like:
 
-image::OW_wsk_cli_setup.png[WSK CLI] 
+image::readme_images/ow_wsk_cli_setup.png[WSK CLI]
 
 In this case the OpenWhisk API Host is pointing to the local minishift nip.io address
 
@@ -317,7 +317,7 @@ wsk -i action invoke hello-openwhisk
 
 A successful action invoke will return an **activation id** :
 
-image::ow_action_with_activation_id.png[Action with Activation ID]
+image::readme_images/ow_action_with_activation_id.png[Action with Activation ID]
 
 We can then use the to **activation id** check the response using `wsk` CLI:
 
@@ -360,7 +360,7 @@ wsk -i action update hello-openwhisk target/hello-openwhisk.jar --main com.examp
 
 Successful update should show a output like:
 
-image::ow_action_update_result.png[]
+image::readme_images/ow_action_update_result.png[]
 
 Repeating the <<action-invocation,Invocation and Verification>> steps should result in the updated response ("... on OpenShift") like:
 [source,json,subs=attributes+]
@@ -379,7 +379,7 @@ wsk -i action delete hello-openwhisk
 
 A successful delete should show output like:
 
-image::ow_action_delete_result.png[]
+image::readme_images/ow_action_delete_result.png[]
 
 ==== Web Action
 
@@ -836,7 +836,7 @@ EOF {conum-guard-sh} <2>
 
 Now when you run `wsk -i action list` you should see output like:
 
-image::OW_Install_Catalog.png[Install Catalog] 
+image::readme_images/ow_install_catalog.png[Install Catalog]
 
 [[tips-and-tricks]]
 == Tips and Tricks
