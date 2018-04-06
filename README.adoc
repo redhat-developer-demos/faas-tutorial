@@ -75,10 +75,7 @@ Local development and testing can be done using https://github.com/minishift/min
 
 #!/bin/bash
 
-# add the location of minishift executable to PATH
-
-export MINISHIFT_HOME=~/minishift_1.15.1
-export PATH=$MINISHIFT_HOME:$PATH
+# Don't foget to add the location of minishift executable to PATH
 
 minishift profile set faas-tutorial
 minishift config set memory 8GB
