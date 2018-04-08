@@ -433,8 +433,8 @@ wsk -i action update --web=true hello-web target/hello-web.jar --main com.exampl
 
 [source,sh,subs=attributes+]
 ----
-WEB_URL=`wsk -i action get hello-web --url | awk 'FNR==2{print $1}'` # <1>
-AUTH=`oc get secret whisk.auth -n faas -o yaml | grep "system:" | awk '{print $2}'` # <2>
+WEB_URL=`wsk -i action get hello-web --url | awk 'FNR==2{print $1}'` {conum-guard-sh} # <1>
+AUTH=`oc get secret whisk.auth -n faas -o yaml | grep "system:" | awk '{print $2}'` {conum-guard-sh} # <2>
 ----
 <1> Get the HTTP URL for invoking the action 
 <2> Some resources requires authentication, for those requests its required to add `Authorization` header with value as `$AUTH`
