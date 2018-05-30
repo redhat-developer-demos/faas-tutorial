@@ -97,6 +97,20 @@ minishift ssh -- sudo ip link set docker0 promisc on {conum-guard-sh} # <2>
 `minishift ssh -- sudo ip link set docker0 promisc on` command needs to be execute each and every time minishift restarted
 ====
 
+If your minishift is running OpenShift 3.9.0, you'll need to fix
+another bug:
+----
+    minishift openshift config set --patch \
+        '{"admissionConfig":
+            {"pluginConfig":
+                {"openshift.io/ImagePolicy":
+                    {"configuration":
+                        {"apiVersion": "v1",
+                         "kind": "ImagePolicyConfig",
+                         "resolveImages": "AttemptRewrite"}}}}}'
+
+----
+
 === Setup environment
 
 [source,sh,subs=attributes+]
