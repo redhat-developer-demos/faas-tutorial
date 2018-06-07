@@ -907,7 +907,7 @@ for every command.
 * Its safe to use `wsk -i update [resource]` when creating OpenWhisk resources like **Actions**, **Packages** etc., as this command 
 will act like `create` for new resources and `update` for existing resources.
 * `wsk -i [resource command ] --summary`  provides detailed information about a specific resource e.g. wsk -i action get foo --summary
-* `wsk -i activation poll`, a very useful command when we want to debug some error or see the exception stack traces during a funciton execution.  The simple example of this could be that we star this command on one terminal and fire the action on another to see  poll window showing exceptions/errors/stacktraces if any during execution.
+* `wsk -i activation poll`, a very useful command when we want to debug some error or see the exception stack traces during a function execution.  The simple example of this could be that we star this command on one terminal and fire the action on another to see  poll window showing exceptions/errors/stacktraces if any during execution.
 ====
 
 [[references]]
