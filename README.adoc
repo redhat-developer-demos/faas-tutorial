@@ -799,49 +799,7 @@ The above action invoke should result in response like:
 
 === Advanced
 
-==== Integration with External Applications
-
-The real use of functions is its ability to listen to external world events and fire themselves when such events happens. In this section we will see how to integrate Functions with external world applications. For the demo sake we will making our Functions integrated with Slack. This integration stripped down version of the OpenWhisk demo app available at https://github.com/IBM-Cloud/openwhisk-slackapp[openwhisk-slackapp].
-
-===== Slack Configuration
-
-- https://github.com/IBM-Cloud/openwhisk-slackapp#create-the-slack-app[Create Slack App] 
-
-- https://github.com/IBM-Cloud/openwhisk-slackapp#complete-the-slack-app-configuration[Slack App Config]
-
-After you have created and configured the Slack App, you need to have the following environment variables defined:
-
-* SLACK_CLIENT_ID - the Slack API Client ID corresponding to your Bot User
-* SLACK_CLIENT_SECRET - the Slack API Client Secret corresponding to your Bot User
-* SLACK_VERIFICATION_TOKEN - the Slack API Client Verification token corresponding to your Bot User
-
-Since we will be doing a manual registration of the application we might need to get the Bot Authorization token to use it with in our functions to query or use Slack API. 
-
-* BOT_OAUTH_TOKEN - The Bot Authorization token after installing the application in your Slack workspace 
-
-===== Build and Deploy
-
-[source,sh]
------
-
-cd solutions/integration/slackapp-event-handler
-
-wsk -i package update demo \
-    -p slackClientId "$SLACK_CLIENT_ID" \
-    -p slackClientSecret "$SLACK_CLIENT_SECRET" \
-    -p slackVerificationToken "$SLACK_VERIFICATION_TOKEN" \
-    -p botUserOAuthToken "$BOT_OAUTH_TOKEN" {conum-guard-sh} {conum-guard-sh} <1>
-
-wsk -i action update demo/slackapp-event target/slackapp-event-handler.jar --main com.redhat.developers.openwhisk.FunctionApp \
-    --web true --annotation final true
-
-cd ../slackapp-command
-
-wsk -i action update demo/rhd-command main.js --web true --annotation final true {conum-guard-sh}  <2>
------
-
-<1> By setting package parameters, they will be passed automatically to all function calls
-<2> In this example I have created a Slack Command called "rhd", you could create any command name of your choice.  The command name will not be referred anywhere in the function.
+Check <https://github.com/redhat-developer-demos/adv-faas-tutorial>
 
 == Troubleshooting
 [[install-catalog]]
